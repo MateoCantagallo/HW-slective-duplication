@@ -1,0 +1,140 @@
+======================================================================
+    THREE-WAY DUPLICATION MODE COMPARISON REPORT (DYNAMIC POWER FOCUS)
+======================================================================
+Generated on: mar 01 jul 2025 19:07:35 -03
+Test Configuration: test.arg
+Instructions Simulated: 1000000
+Selective Duplication Addresses: 2 addresses
+
+======================================================================
+                         SUMMARY COMPARISON
+======================================================================
+
+Performance Metrics Comparison:
+================================
+Instructions Committed:
+  Baseline:  1000070
+  Selective: 1000050
+  Legacy:    1000028
+  ⚠️  DIFFERENCES DETECTED in instruction counts!
+
+Simulation Cycles:
+  Baseline:  375261
+  Selective: 375261
+  Legacy:    687875
+  📊 Differences vs Baseline:
+    Selective: 0 cycles
+    Legacy:    312614 cycles
+
+Instructions Per Cycle (IPC):
+  Baseline:  2.6650
+  Selective: 2.6649
+  Legacy:    1.4538
+
+Duplication Statistics:
+======================
+Instructions Added in Rename:
+  Baseline:  
+  Selective: 24991
+  Legacy:    875063
+  ✓ Selective mode loaded 2 addresses successfully
+
+Dynamic Power Consumption Analysis:
+===================================
+
+CC1 Power (Aggressive Power Gating):
+  Baseline:  45.5301 W
+  Selective: 48.1516 W
+  Legacy:    65.9284 W
+  📈 Percentage increase vs Baseline:
+    Selective: 5.00%
+    Legacy:    44.00%
+
+CC2 Power (Proportional Scaling):
+  Baseline:  34.5465 W
+  Selective: 35.3676 W
+  Legacy:    41.6085 W
+  📈 Percentage increase vs Baseline:
+    Selective: 2.00%
+    Legacy:    20.00%
+
+CC3 Power (Conservative with Leakage):
+  Baseline:  39.1208 W
+  Selective: 39.7026 W
+  Legacy:    44.1481 W
+  📈 Percentage increase vs Baseline:
+    Selective: 1.00%
+    Legacy:    12.00%
+
+Power Model Explanation:
+========================
+CC1 (Aggressive): Uses full power when active, aggressive power gating
+CC2 (Proportional): Linear scaling based on actual resource utilization
+CC3 (Conservative): Same as CC2 but includes leakage power when idle
+
+Cache Performance:
+==================
+il1 Cache:
+  Accesses - Baseline: 1000178, Selective: 1000158, Legacy: 1000115
+  Miss Rate - Baseline: 0.0000, Selective: 0.0000, Legacy: 0.0000
+
+dl1 Cache:
+  Accesses - Baseline: 125007, Selective: 125007, Legacy: 250008
+  Miss Rate - Baseline: 0.0000, Selective: 0.0000, Legacy: 0.0000
+
+ul2 Cache:
+  Accesses - Baseline: 4, Selective: 4, Legacy: 6
+  Miss Rate - Baseline: 0.5000, Selective: 0.5000, Legacy: 0.5000
+
+Functional Unit Usage:
+======================
+Baseline Mode FU Usage:
+  No FU usage statistics found in baseline output
+
+Selective Mode FU Usage:
+integer-ALU (busy for 375016 cycles
+) integer-ALU (busy for 312512 cycles
+) integer-ALU (busy for 212509 cycles
+) integer-ALU (busy for 100018 cycles
+FP-adder (busy for 99956 cycles
+
+Legacy Mode FU Usage:
+integer-ALU (busy for 625014 cycles
+) integer-ALU (busy for 375005 cycles
+) integer-ALU (busy for 0 cycles
+) integer-ALU (busy for 0 cycles
+FP-adder (busy for 687519 cycles
+
+Error Analysis:
+===============
+Error/Warning Count:
+  Baseline:  6
+  Selective: 6
+  Legacy:    6
+  ⚠️  Errors detected in simulation output
+  Baseline errors:
+Thread_0_bpred_bimod.bpred_jr_rate <error: divide by zero> # JR address-prediction rate (i.e., JR addr-hits/JRs seen)
+Thread_0_bpred_bimod.bpred_jr_non_ras_rate.PP <error: divide by zero> # non-RAS JR addr-pred rate (ie, non-RAS JR hits/JRs seen)
+Thread_0_bpred_bimod.ras_rate.PP <error: divide by zero> # RAS prediction rate (i.e., RAS hits/used RAS)
+  Selective errors:
+Thread_0_bpred_bimod.bpred_jr_rate <error: divide by zero> # JR address-prediction rate (i.e., JR addr-hits/JRs seen)
+Thread_0_bpred_bimod.bpred_jr_non_ras_rate.PP <error: divide by zero> # non-RAS JR addr-pred rate (ie, non-RAS JR hits/JRs seen)
+Thread_0_bpred_bimod.ras_rate.PP <error: divide by zero> # RAS prediction rate (i.e., RAS hits/used RAS)
+  Legacy errors:
+Thread_0_bpred_bimod.bpred_jr_rate <error: divide by zero> # JR address-prediction rate (i.e., JR addr-hits/JRs seen)
+Thread_0_bpred_bimod.bpred_jr_non_ras_rate.PP <error: divide by zero> # non-RAS JR addr-pred rate (ie, non-RAS JR hits/JRs seen)
+Thread_0_bpred_bimod.ras_rate.PP <error: divide by zero> # RAS prediction rate (i.e., RAS hits/used RAS)
+
+======================================================================
+                         FILE INFORMATION
+======================================================================
+Full output files:
+  Baseline mode:  baseline_output.txt
+  Selective mode: selective_output.txt
+  Legacy mode:    legacy_output.txt
+  This report:    comparison_report.txt
+
+File sizes:
+  Baseline output:  637 lines, 36K
+  Selective output: 728 lines, 36K
+  Legacy output:    727 lines, 36K

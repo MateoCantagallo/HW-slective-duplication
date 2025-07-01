@@ -1,0 +1,6 @@
+# Sample duplicate address file for selective instruction duplication
+# Format: one hexadecimal address per line
+# Lines starting with # are comments and will be ignored
+
+# Example addresses (replace with actual instruction addresses you want to duplicate)
+0x12000022c

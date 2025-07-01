@@ -1,0 +1,47 @@
+=== Selective Duplication Statistics ===
+sim_num_insn                1000050 # total number of instructions committed
+sim_num_insn 0              1000002 # total number of instructions committed for this thread
+sim_cycle                    375261 # total simulation time in cycles
+sim_IPC                      2.6649 # instructions per cycle
+sim_CPI                      0.3752 # cycles per instruction
+Loaded 2 addresses for selective duplication from 'test_addresses.txt'
+Total Number of Added Instrction in Rename : 24991
+Total Number of Added Instrction in Execute: 24990
+Total Number of Selection Done: 1275051
+avg_total_power_cycle_cc1      48.1516 # average total power per cycle_cc1
+avg_total_power_cycle_cc2      35.3676 # average total power per cycle_cc2
+avg_total_power_cycle_cc3      39.7026 # average total power per cycle_cc3
+il1.accesses                1000158 # total number of accesses
+il1.hits                    1000154 # total number of hits
+il1.misses                        4 # total number of misses
+il1.miss_rate                0.0000 # miss rate (i.e., misses/ref)
+dl1.accesses                 125007 # total number of accesses
+dl1.hits                     125007 # total number of hits
+dl1.misses                        0 # total number of misses
+dl1.miss_rate                0.0000 # miss rate (i.e., misses/ref)
+ul2.accesses                      4 # total number of accesses
+ul2.hits                          2 # total number of hits
+ul2.misses                        2 # total number of misses
+ul2.miss_rate                0.5000 # miss rate (i.e., misses/ref)
+Thread_0_bpred_bimod.lookups        62511 # total number of bpred lookups
+Thread_0_bpred_bimod.updates        62502 # total number of updates
+Thread_0_bpred_bimod.misses            2 # total number of misses
+integer-ALU (busy for 375016 cycles
+) integer-ALU (busy for 312512 cycles
+) integer-ALU (busy for 212509 cycles
+) integer-ALU (busy for 100018 cycles
+FP-adder (busy for 99956 cycles
+) FP-adder (busy for 0 cycles
+) FP-adder (busy for 0 cycles
+) FP-adder (busy for 0 cycles
+FP-adder (busy for 99956 cycles
+) FP-adder (busy for 0 cycles
+) FP-adder (busy for 0 cycles
+) FP-adder (busy for 0 cycles
+FP-adder (busy for 99956 cycles
+) FP-adder (busy for 0 cycles
+) FP-adder (busy for 0 cycles
+) FP-adder (busy for 0 cycles
+FP-MULT/DIV (busy for 0 cycles
+FP-MULT/DIV (busy for 0 cycles
+FP-MULT/DIV (busy for 0 cycles

@@ -1,0 +1,7 @@
+# Test addresses for selective duplication  
+# These are addresses from the hello program starting at 0x0120000000
+120000130
+120000134
+120000138
+12000013C
+120000140
