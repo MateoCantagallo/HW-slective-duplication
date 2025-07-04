@@ -1,46 +1,46 @@
 === Legacy (Full Duplication) Statistics ===
-sim_num_insn                1000028 # total number of instructions committed
-sim_num_insn 0              1000000 # total number of instructions committed for this thread
-sim_cycle                    687875 # total simulation time in cycles
-sim_IPC                      1.4538 # instructions per cycle
-sim_CPI                      0.6879 # cycles per instruction
-Total Number of Added Instrction in Rename : 875063
-Total Number of Added Instrction in Execute: 500016
-Total Number of Selection Done: 2125041
-avg_total_power_cycle_cc1      65.9284 # average total power per cycle_cc1
-avg_total_power_cycle_cc2      41.6085 # average total power per cycle_cc2
-avg_total_power_cycle_cc3      44.1481 # average total power per cycle_cc3
-il1.accesses                1000115 # total number of accesses
-il1.hits                    1000109 # total number of hits
-il1.misses                        6 # total number of misses
+sim_num_insn                2200196 # total number of instructions committed
+sim_num_insn 0              2200175 # total number of instructions committed for this thread
+sim_cycle                   1513004 # total simulation time in cycles
+sim_IPC                      1.4542 # instructions per cycle
+sim_CPI                      0.6877 # cycles per instruction
+Total Number of Added Instrction in Rename : 1925231
+Total Number of Added Instrction in Execute: 1100111
+Total Number of Selection Done: 4675421
+avg_total_power_cycle_cc1      66.0065 # average total power per cycle_cc1
+avg_total_power_cycle_cc2      41.6650 # average total power per cycle_cc2
+avg_total_power_cycle_cc3      44.2034 # average total power per cycle_cc3
+il1.accesses                2200312 # total number of accesses
+il1.hits                    2200305 # total number of hits
+il1.misses                        7 # total number of misses
 il1.miss_rate                0.0000 # miss rate (i.e., misses/ref)
-dl1.accesses                 250008 # total number of accesses
-dl1.hits                     250008 # total number of hits
+dl1.accesses                 550055 # total number of accesses
+dl1.hits                     550055 # total number of hits
 dl1.misses                        0 # total number of misses
 dl1.miss_rate                0.0000 # miss rate (i.e., misses/ref)
-ul2.accesses                      6 # total number of accesses
-ul2.hits                          3 # total number of hits
+ul2.accesses                      7 # total number of accesses
+ul2.hits                          4 # total number of hits
 ul2.misses                        3 # total number of misses
-ul2.miss_rate                0.5000 # miss rate (i.e., misses/ref)
-Thread_0_bpred_bimod.lookups        62507 # total number of bpred lookups
-Thread_0_bpred_bimod.updates       124999 # total number of updates
-Thread_0_bpred_bimod.misses            3 # total number of misses
-integer-ALU (busy for 625014 cycles
-) integer-ALU (busy for 375005 cycles
+ul2.miss_rate                0.4286 # miss rate (i.e., misses/ref)
+Thread_0_bpred_bimod.lookups       137517 # total number of bpred lookups
+Thread_0_bpred_bimod.updates       275020 # total number of updates
+Thread_0_bpred_bimod.misses            4 # total number of misses
+integer-ALU (busy for 1375126 cycles
+) integer-ALU (busy for 825067 cycles
 ) integer-ALU (busy for 0 cycles
 ) integer-ALU (busy for 0 cycles
-FP-adder (busy for 687519 cycles
-) FP-adder (busy for 687517 cycles
-) FP-adder (busy for 687512 cycles
-) FP-adder (busy for 687506 cycles
-FP-adder (busy for 687519 cycles
-) FP-adder (busy for 687517 cycles
-) FP-adder (busy for 687512 cycles
-) FP-adder (busy for 687506 cycles
-FP-adder (busy for 687519 cycles
-) FP-adder (busy for 687517 cycles
-) FP-adder (busy for 687512 cycles
-) FP-adder (busy for 687506 cycles
-FP-MULT/DIV (busy for 2 cycles
-FP-MULT/DIV (busy for 2 cycles
-FP-MULT/DIV (busy for 2 cycles
+FP-adder (busy for 1512643 cycles
+) FP-adder (busy for 1512641 cycles
+) FP-adder (busy for 1512634 cycles
+) FP-adder (busy for 1512624 cycles
+FP-adder (busy for 1512643 cycles
+) FP-adder (busy for 1512641 cycles
+) FP-adder (busy for 1512634 cycles
+) FP-adder (busy for 1512624 cycles
+FP-adder (busy for 1512643 cycles
+) FP-adder (busy for 1512641 cycles
+) FP-adder (busy for 1512634 cycles
+) FP-adder (busy for 1512624 cycles
+FP-MULT/DIV (busy for 7 cycles
+FP-MULT/DIV (busy for 7 cycles
+FP-MULT/DIV (busy for 7 cycles
