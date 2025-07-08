@@ -3494,9 +3494,7 @@ writeback(void)
 				// NOT A GREAT FIX.......
 				if(int_reg_file[rs->physreg].ready != sim_cycle){
 					md_print_insn(rs->IR, rs->PC, stderr);
-					fprintf(stderr, "\n %lld %d %d %d\n",int_reg_file[rs->physreg].ready, rs->in_LSQ, rs->replayed, rs->ptrace_seq);
-					fprintf(stderr, "DEBUG: sim_cycle=%lld, exec_lat=%d, should_duplicate=%d\n", 
-						sim_cycle, rs->exec_lat, rs->should_duplicate);
+					
 					int_reg_file[rs->physreg].ready = sim_cycle;
 					//GUL_Start
 					//	    if(int_reg_file[rs->physreg].linkFP != -1){
@@ -4893,7 +4891,7 @@ simoo_mem_obj(struct mem_t *mem,		/* memory space to access */
  */
 
 /* next program counter */
-#define SET_NPC(EXPR)           (regs->regs_NPC = (EXPR))
+#define SET_NPC(EXPR)        (regs->regs_NPC = (EXPR))
 
 /* target program counter */
 #undef  SET_TPC
@@ -4909,11 +4907,10 @@ simoo_mem_obj(struct mem_t *mem,		/* memory space to access */
 #define GPR(N)                  (BITMAP_SET_P(contexts[bitmap_context_id].use_spec_R, R_BMAP_SZ, (N))\
 	? spec_regs->regs_R[N]                       \
 			: regs->regs_R[N])
-#define SET_GPR(N,EXPR)         (spec_mode				\
-	? ((spec_regs->regs_R[N] = (EXPR)),		\
-			BITMAP_SET(contexts[bitmap_context_id].use_spec_R, R_BMAP_SZ, (N))\
-			/*spec_regs->regs_R[N]*/)			\
-			: (regs->regs_R[N] = (EXPR)))
+#define SET_GPR(N,EXPR)         (spec_mode \
+            ? ((spec_regs->regs_R[N] = (EXPR)), \
+               BITMAP_SET(contexts[bitmap_context_id].use_spec_R, R_BMAP_SZ, (N))) \
+            : (regs->regs_R[N] = (EXPR)))
 
 /* floating point register accessors, NOTE: speculative copy on write storage
    provided for fast recovery during wrong path execute (see tracer_recover()
@@ -5006,7 +5003,9 @@ simoo_mem_obj(struct mem_t *mem,		/* memory space to access */
 #define SYSCALL(INST)							\
 	(/* only execute system calls in non-speculative mode */		\
 			(spec_mode ? panic("speculative syscall") : (void) 0),		\
-			sys_syscall(regs, mem_access, mem, INST, TRUE))
+			(fprintf(stderr, "SYSCALL: Before syscall PC=0x%016llx NPC=0x%016llx\n", regs->regs_PC, regs->regs_NPC)), \
+			sys_syscall(regs, mem_access, mem, INST, TRUE), \
+			(fprintf(stderr, "SYSCALL: After syscall PC=0x%016llx NPC=0x%016llx\n", regs->regs_PC, regs->regs_NPC)))
 
 /* default register state accessor, used by DLite */
 static char *					/* err str, NULL for no err */
@@ -5684,8 +5683,26 @@ register_rename(void)
 		mem = contexts[disp_context_id].mem;
 		regs = &contexts[disp_context_id].regs;
 		spec_regs = &contexts[disp_context_id].spec_regs;
-		inst = contexts[disp_context_id].fetch_data[contexts[disp_context_id].fetch_head].IR;
-		regs->regs_PC = contexts[disp_context_id].fetch_data[contexts[disp_context_id].fetch_head].regs_PC;
+	inst = contexts[disp_context_id].fetch_data[contexts[disp_context_id].fetch_head].IR;
+	
+	/* Debug: track PC assignment from fetch queue */
+	md_addr_t fetch_pc = contexts[disp_context_id].fetch_data[contexts[disp_context_id].fetch_head].regs_PC;
+	
+	/* Catch NULL PC assignment */
+	if (fetch_pc == 0) {
+		fprintf(stderr, "CRITICAL: About to assign NULL PC from fetch queue! head=%d\n",
+		        contexts[disp_context_id].fetch_head);
+		fprintf(stderr, "Current regs_PC=0x%016llx\n", regs->regs_PC);
+		/* Show a few entries around the head */
+		for (int i = -2; i <= 2; i++) {
+			int idx = (contexts[disp_context_id].fetch_head + i + ifq_size) % ifq_size;
+			fprintf(stderr, "  fetch_data[%d].regs_PC=0x%016llx (head%+d)\n", 
+			        idx, contexts[disp_context_id].fetch_data[idx].regs_PC, i);
+		}
+		panic("NULL PC detected in fetch queue assignment");
+	}
+	
+	regs->regs_PC = fetch_pc;
 		contexts[disp_context_id].pred_PC = contexts[disp_context_id].fetch_data[contexts[disp_context_id].fetch_head].pred_PC;
 		dir_update_ptr = &(contexts[disp_context_id].fetch_data[contexts[disp_context_id].fetch_head].dir_update);
 		stack_recover_idx = contexts[disp_context_id].fetch_data[contexts[disp_context_id].fetch_head].stack_recover_idx;
@@ -6691,9 +6708,13 @@ fetch(int* current_fetch_context_ptr)
 			contexts[current_fetch_context].fetch_pred_PC = contexts[current_fetch_context].fetch_regs_PC + sizeof(md_inst_t);
 		}
 
-		/* commit this instruction to the IFETCH -> RENAME queue */
-		contexts[current_fetch_context].fetch_data[contexts[current_fetch_context].fetch_tail].IR = inst;
-		contexts[current_fetch_context].fetch_data[contexts[current_fetch_context].fetch_tail].regs_PC = contexts[current_fetch_context].fetch_regs_PC;
+	/* commit this instruction to the IFETCH -> RENAME queue */
+	contexts[current_fetch_context].fetch_data[contexts[current_fetch_context].fetch_tail].IR = inst;
+	
+	/* Debug: track what PC gets stored in fetch queue */
+	
+	
+	contexts[current_fetch_context].fetch_data[contexts[current_fetch_context].fetch_tail].regs_PC = contexts[current_fetch_context].fetch_regs_PC;
 		contexts[current_fetch_context].fetch_data[contexts[current_fetch_context].fetch_tail].pred_PC = contexts[current_fetch_context].fetch_pred_PC;
 		contexts[current_fetch_context].fetch_data[contexts[current_fetch_context].fetch_tail].stack_recover_idx = stack_recover_idx;
 		contexts[current_fetch_context].fetch_data[contexts[current_fetch_context].fetch_tail].ptrace_seq = contexts[current_fetch_context].ptrace_seq++;
@@ -6950,8 +6971,27 @@ sim_main(void)
 			regs->regs_R[MD_REG_ZERO] = 0;
 			regs->regs_F.d[MD_REG_ZERO] = 0.0;
 
+			
 			/* get the next instruction to execute */
 			MD_FETCH_INST(inst, mem, regs->regs_PC);
+		/* Debug: check for PC corruption */
+		if (regs->regs_PC == 0) {
+			fprintf(stderr, "ERROR: PC is NULL! This indicates execution flow corruption.\n");
+			fprintf(stderr, "Last few executed instructions:\n");
+			/* Add any additional debugging info here */
+			panic("PC became NULL - execution flow corrupted");
+		}
+		
+		/* Debug: Track PC changes */
+		static md_addr_t last_pc = 0;
+		if (last_pc != 0 && (regs->regs_PC == 0 || regs->regs_PC < 0x120000000ULL)) {
+			fprintf(stderr, "SUSPICIOUS PC CHANGE: last_pc=0x%016llx, current_pc=0x%016llx\n", 
+			        last_pc, regs->regs_PC);
+		}
+		last_pc = regs->regs_PC;
+		
+		/* Extra debugging around the problematic syscall area */
+		
 
 			/* set default reference address */
 			addr = 0; is_write = FALSE;
@@ -6978,6 +7018,8 @@ sim_main(void)
 	{ fault = (FAULT); break; }
 #include "machine.def"
 			default:
+				fprintf(stderr, "BOGUS OPCODE: PC=0x%08p, inst=0x%08x, opcode=%d\n", 
+				        regs->regs_PC, inst, op);
 				panic("attempted to execute a bogus opcode");
 			}
 
@@ -7073,8 +7115,18 @@ sim_main(void)
 				dlite_main(regs->regs_PC, regs->regs_NPC, sim_num_insn, regs, mem);
 
 			/* go to the next instruction */
+			
 			regs->regs_PC = regs->regs_NPC;
 			regs->regs_NPC += sizeof(md_inst_t);
+			
+			
+			/* Check if NPC became NULL and trace how it happened */
+			if (regs->regs_NPC == 0) {
+				fprintf(stderr, "ERROR: NPC became NULL after instruction execution!\n");
+				fprintf(stderr, "Instruction opcode: %d\n", op);
+				fprintf(stderr, "Instruction PC: 0x%016llx\n", regs->regs_PC);
+				panic("NPC corruption detected");
+			}
 
 			/* one more instruction has been executed */
 			contexts[current_context].fastfwd_left--;
@@ -7082,10 +7134,13 @@ sim_main(void)
 	}
 
 	/* set up timing simulation entry state */
+	
 	for(i=0;i<num_contexts;i++){
+		
 		contexts[i].fetch_regs_PC = contexts[i].regs.regs_PC;
 		contexts[i].fetch_pred_PC = contexts[i].regs.regs_PC;
 		contexts[i].regs.regs_PC = contexts[i].regs.regs_PC;
+		
 	}
 
 	/* init pipeline structs for full simulation */

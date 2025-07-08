@@ -513,6 +513,7 @@ int getdirentries(int fd, char *buf, int nbytes, long *basep);
 #define OSF_SYS_swapctl     259
 #define OSF_SYS_memcntl     260
 #define OSF_SYS_fdatasync   261
+#define OSF_SYS_unknown_339 339
 
 /* translate system call arguments */
 struct xlate_table_t
@@ -1256,9 +1257,26 @@ sys_syscall(struct regs_t *regs,	/* registers to access */
 	/* copy filename to host memory */
 	mem_strcpy(mem_fn, mem, Read, /*fname*/regs->regs_R[MD_REG_A0], buf);
 
-	/* open the file */
-	/*fd*/regs->regs_R[MD_REG_V0] =
-	  open(buf, local_flags, /*mode*/regs->regs_R[MD_REG_A2]);
+	/* check for special /proc files that need simulation */
+	if (strcmp(buf, "/proc/sys/kernel/osrelease") == 0) {
+	  /* This is a kernel version check - create a temporary file with appropriate version */
+	  char temp_file[] = "/tmp/ss_osrelease_XXXXXX";
+	  int temp_fd = mkstemp(temp_file);
+	  if (temp_fd >= 0) {
+	    /* Write a kernel version that glibc 2.7 will accept */
+	    write(temp_fd, "2.6.9-alpha\n", 12);
+	    close(temp_fd);
+	    /* Now open the temp file for reading */
+	    regs->regs_R[MD_REG_V0] = open(temp_file, O_RDONLY);
+	    unlink(temp_file); /* Remove after opening so it gets cleaned up */
+	  } else {
+	    regs->regs_R[MD_REG_V0] = -1;
+	  }
+	} else {
+	  /* open the file normally */
+	  /*fd*/regs->regs_R[MD_REG_V0] =
+	    open(buf, local_flags, /*mode*/regs->regs_R[MD_REG_A2]);
+	}
 	
 	/* check for an error condition */
 	if (regs->regs_R[MD_REG_V0] != (qword_t)-1)
@@ -2594,8 +2612,39 @@ sys_syscall(struct regs_t *regs,	/* registers to access */
       break;
 
     case OSF_SYS_setsysinfo:
-      warn("unsupported setsysinfo() call...");
-      regs->regs_R[MD_REG_V0] = 0; 
+      /* Syscall 257 - setsysinfo() on Alpha Linux */
+      {
+        /* This is an Alpha-specific syscall to set system information */
+        /* The first argument (A0) is the operation code */
+        /* The second argument (A1) is the buffer */
+        /* The third argument (A2) is the buffer size */
+        /* The fourth argument (A3) is additional info */
+        
+        unsigned long op = regs->regs_R[MD_REG_A0];
+        
+        switch (op) {
+          case 14: /* SSI_IEEE_FP_CONTROL - set floating-point control */
+            /* For now, just accept the FP control setting */
+            warn("setsysinfo() IEEE_FP_CONTROL accepted (ignored)");
+            regs->regs_R[MD_REG_A3] = 0;
+            regs->regs_R[MD_REG_V0] = 1; /* success */
+            break;
+            
+          case 12: /* SSI_IEEE_STATE_AT_SIGNAL - set IEEE state at signal */
+            /* Accept this setting */
+            warn("setsysinfo() IEEE_STATE_AT_SIGNAL accepted (ignored)");
+            regs->regs_R[MD_REG_A3] = 0;
+            regs->regs_R[MD_REG_V0] = 1; /* success */
+            break;
+            
+          default:
+            /* For unknown operations, just return success */
+            warn("setsysinfo() call with op=%ld, accepted (ignored)", op);
+            regs->regs_R[MD_REG_A3] = 0;
+            regs->regs_R[MD_REG_V0] = 1; /* success */
+            break;
+        }
+      }
       break;
 
 #if !defined(MIN_SYSCALL_MODE)
@@ -2868,9 +2917,29 @@ sys_syscall(struct regs_t *regs,	/* registers to access */
 #if !defined(MIN_SYSCALL_MODE)
     case OSF_SYS_uname:
       /* get name and information about current kernel */
-
-      regs->regs_R[MD_REG_A3] = -1;
-      regs->regs_R[MD_REG_V0] = EPERM;
+      {
+        struct osf_utsname {
+          char sysname[32];
+          char nodename[32]; 
+          char release[32];
+          char version[32];
+          char machine[32];
+        } osf_uname_buf;
+        
+        /* Fill in reasonable values that should satisfy glibc 2.7 */
+        strcpy(osf_uname_buf.sysname, "Linux");
+        strcpy(osf_uname_buf.nodename, "alpha-sim");
+        strcpy(osf_uname_buf.release, "2.6.9"); /* Minimum kernel version that glibc 2.7 accepts */
+        strcpy(osf_uname_buf.version, "#1 SMP");
+        strcpy(osf_uname_buf.machine, "alpha");
+        
+        /* Copy to simulated memory */
+        mem_bcopy(mem_fn, mem, Write, /*buf*/regs->regs_R[MD_REG_A0],
+                  &osf_uname_buf, sizeof(struct osf_utsname));
+        
+        regs->regs_R[MD_REG_A3] = 0;
+        regs->regs_R[MD_REG_V0] = 0; /* success */
+      }
       break;
 #endif
 
@@ -3508,6 +3577,98 @@ sys_syscall(struct regs_t *regs,	/* registers to access */
     case OSF_SYS_madvise:
       warn("unsupported madvise() call ignored...");
       regs->regs_R[MD_REG_V0] = 0;
+      break;
+
+    case OSF_SYS_unknown_339:
+      /* Syscall 339 - uname() on Alpha Linux */
+      {
+        struct osf_utsname {
+          char sysname[65];
+          char nodename[65]; 
+          char release[65];
+          char version[65];
+          char machine[65];
+        } osf_uname_buf;
+        
+        /* Fill in values that satisfy glibc 2.24+ (requires kernel 3.2+) */
+        strcpy(osf_uname_buf.sysname, "Linux");
+        strcpy(osf_uname_buf.nodename, "alpha-sim");
+        strcpy(osf_uname_buf.release, "4.19.0"); /* Modern kernel version >= 3.2 */
+        strcpy(osf_uname_buf.version, "#1 SMP PREEMPT");
+        strcpy(osf_uname_buf.machine, "alpha");
+        
+        /* Copy to simulated memory */
+        mem_bcopy(mem_fn, mem, Write, /*buf*/regs->regs_R[MD_REG_A0],
+                  &osf_uname_buf, sizeof(struct osf_utsname));
+        
+        regs->regs_R[MD_REG_A3] = 0;
+        regs->regs_R[MD_REG_V0] = 0; /* success */
+      }
+      break;
+
+    case OSF_SYS_getsysinfo:
+      /* Syscall 256 - getsysinfo() on Alpha Linux */
+      {
+        /* This is an Alpha-specific syscall to get system information */
+        /* The first argument (A0) is the operation code */
+        /* The second argument (A1) is the buffer */
+        /* The third argument (A2) is the buffer size */
+        /* The fourth argument (A3) is additional info */
+        
+        unsigned long op = regs->regs_R[MD_REG_A0];
+        md_addr_t buf = regs->regs_R[MD_REG_A1];
+        unsigned long bufsize = regs->regs_R[MD_REG_A2];
+        
+        switch (op) {
+          case 45: /* GSI_CPU_INFO - get CPU information */
+            {
+              /* Return CPU information structure */
+              struct cpu_info {
+                unsigned long cpu_type;      /* CPU type (21264 = EV6) */
+                unsigned long cpu_variation; /* CPU variation */
+                unsigned long cpu_revision;  /* CPU revision */
+                unsigned long cpu_serial_num[2]; /* CPU serial number */
+              } cpu_info;
+              
+              /* Simulate EV6 (21264) processor as per IMPLVER instruction */
+              cpu_info.cpu_type = 21264;     /* Alpha 21264 (EV6) */
+              cpu_info.cpu_variation = 2;    /* EV6 variation */
+              cpu_info.cpu_revision = 1;     /* Revision 1 */
+              cpu_info.cpu_serial_num[0] = 0x12345678; /* Mock serial */
+              cpu_info.cpu_serial_num[1] = 0x87654321;
+              
+              if (bufsize >= sizeof(cpu_info)) {
+                mem_bcopy(mem_fn, mem, Write, buf, &cpu_info, sizeof(cpu_info));
+                regs->regs_R[MD_REG_V0] = 1; /* success, 1 item returned */
+                regs->regs_R[MD_REG_A3] = 0; /* no error */
+              } else {
+                regs->regs_R[MD_REG_V0] = -1; /* buffer too small */
+                regs->regs_R[MD_REG_A3] = -1; /* error */
+              }
+            }
+            break;
+            
+          case 20: /* GSI_PLATFORM_NAME - get platform name */
+            {
+              char platform_name[] = "AlphaServer";
+              if (bufsize >= strlen(platform_name) + 1) {
+                mem_bcopy(mem_fn, mem, Write, buf, platform_name, strlen(platform_name) + 1);
+                regs->regs_R[MD_REG_V0] = 1; /* success */
+                regs->regs_R[MD_REG_A3] = 0; /* no error */
+              } else {
+                regs->regs_R[MD_REG_V0] = -1; /* buffer too small */
+                regs->regs_R[MD_REG_A3] = -1; /* error */
+              }
+            }
+            break;
+            
+          default:
+            /* For unknown operations, just return 0 (not supported) */
+            regs->regs_R[MD_REG_V0] = 0;
+            regs->regs_R[MD_REG_A3] = 0; /* no error */
+            break;
+        }
+      }
       break;
 
     default:

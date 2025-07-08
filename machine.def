@@ -569,6 +569,8 @@ DEFINST(STQ,			0x2d,
     WRITE_WORD(_src, GPR(RB) + SEXT(OFS), _fault);			\
     if (_fault != md_fault_none)					\
       DECLARE_FAULT(_fault);						\
+    /* Set RA to 1 to indicate successful store conditional */		\
+    SET_GPR(RA, 1);							\
   }
 DEFINST(STL_C,			0x2e,
 	"stl_c (unimpl)",	"a,o(b)",
@@ -583,6 +585,8 @@ DEFINST(STL_C,			0x2e,
     WRITE_QWORD(GPR(RA), GPR(RB) + SEXT(OFS), _fault);			\
     if (_fault != md_fault_none)					\
       DECLARE_FAULT(_fault);						\
+    /* Set RA to 1 to indicate successful store conditional */		\
+    SET_GPR(RA, 1);							\
   }
 DEFINST(STQ_C,			0x2f,
 	"stq_c (unimpl)",	"a,o(b)",

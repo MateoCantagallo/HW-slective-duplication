@@ -66,6 +66,7 @@
 #include <bfd.h>
 #else /* !BFD_LOADER */
 #include "target-alpha/ecoff.h"
+#include "target-alpha/elf.h"
 #endif /* BFD_LOADER */
 
 /* amount of tail padding added to all loaded text segments */
@@ -144,6 +145,204 @@ ld_reg_stats(struct stat_sdb_t *sdb, struct mem_t* mem)	/* stats data base */
 	       "target executable endian-ness, non-zero if big endian",
 	       &mem->ld_target_big_endian, mem->ld_target_big_endian, NULL);
 }
+
+#ifndef BFD_LOADER
+
+/* detect if file is ELF format */
+static int
+is_elf_file(FILE *fobj)
+{
+  unsigned char e_ident[EI_NIDENT];
+  long pos = ftell(fobj);
+  
+  if (fread(e_ident, EI_NIDENT, 1, fobj) < 1) {
+    fseek(fobj, pos, SEEK_SET);
+    return 0;
+  }
+  
+  fseek(fobj, pos, SEEK_SET);
+  
+  return (e_ident[EI_MAG0] == ELFMAG0 &&
+          e_ident[EI_MAG1] == ELFMAG1 &&
+          e_ident[EI_MAG2] == ELFMAG2 &&
+          e_ident[EI_MAG3] == ELFMAG3);
+}
+
+/* load ELF binary */
+static void
+load_elf_binary(FILE *fobj, char *fname, struct regs_t *regs, 
+                struct mem_t *mem, int zero_bss_segs)
+{
+  Elf64_Ehdr ehdr;
+  Elf64_Phdr *phdrs;
+  Elf64_Shdr *shdrs;
+  char *section_strtab = NULL;
+  int i;
+  md_addr_t data_break = 0;
+
+  /* read ELF header */
+  if (fread(&ehdr, sizeof(Elf64_Ehdr), 1, fobj) < 1)
+    fatal("cannot read ELF header from executable `%s'", fname);
+
+  /* verify it's a 64-bit Alpha ELF file */
+  if (ehdr.e_ident[EI_CLASS] != ELFCLASS64)
+    fatal("not a 64-bit ELF file: `%s'", fname);
+  
+  if (ehdr.e_machine != EM_ALPHA)
+    fatal("not an Alpha ELF file: `%s'", fname);
+    
+  if (ehdr.e_type != ET_EXEC)
+    fatal("not an executable ELF file: `%s'", fname);
+
+  /* determine endianness */
+  mem->ld_target_big_endian = (ehdr.e_ident[EI_DATA] == ELFDATA2MSB);
+
+  /* set entry point */
+  mem->ld_prog_entry = ehdr.e_entry;
+
+  /* read program headers */
+  if (ehdr.e_phnum > 0) {
+    phdrs = calloc(ehdr.e_phnum, sizeof(Elf64_Phdr));
+    if (!phdrs)
+      fatal("out of memory");
+    
+    if (fseek(fobj, ehdr.e_phoff, SEEK_SET) != 0)
+      fatal("cannot seek to program header table in `%s'", fname);
+    
+    if (fread(phdrs, sizeof(Elf64_Phdr), ehdr.e_phnum, fobj) < ehdr.e_phnum)
+      fatal("cannot read program header table from `%s'", fname);
+
+    /* process program headers (segments) */
+    for (i = 0; i < ehdr.e_phnum; i++) {
+      if (phdrs[i].p_type == PT_LOAD && phdrs[i].p_filesz > 0) {
+        char *segment_data = calloc(phdrs[i].p_filesz, 1);
+        if (!segment_data)
+          fatal("out of memory");
+
+        /* read segment data */
+        if (fseek(fobj, phdrs[i].p_offset, SEEK_SET) != 0)
+          fatal("cannot seek to segment data in `%s'", fname);
+        
+        if (fread(segment_data, phdrs[i].p_filesz, 1, fobj) < 1)
+          fatal("cannot read segment data from `%s'", fname);
+
+        /* copy segment to memory */
+        mem_bcopy(mem_access, mem, Write, phdrs[i].p_vaddr, 
+                  segment_data, phdrs[i].p_filesz);
+
+        /* zero out any additional memory if memsz > filesz */
+        if (phdrs[i].p_memsz > phdrs[i].p_filesz) {
+          mem_bzero(mem_access, mem,
+                    phdrs[i].p_vaddr + phdrs[i].p_filesz,
+                    phdrs[i].p_memsz - phdrs[i].p_filesz);
+        }
+
+        /* determine if this is text or data */
+        if (phdrs[i].p_flags & PF_X) {
+          /* executable segment - text */
+          if (mem->ld_text_base == 0) {
+            mem->ld_text_base = phdrs[i].p_vaddr;
+            mem->ld_text_size = phdrs[i].p_memsz + TEXT_TAIL_PADDING;
+          }
+        } else if (phdrs[i].p_flags & PF_W) {
+          /* writable segment - data */
+          if (mem->ld_data_base == 0) {
+            mem->ld_data_base = phdrs[i].p_vaddr;
+          }
+          if (phdrs[i].p_vaddr + phdrs[i].p_memsz > data_break)
+            data_break = phdrs[i].p_vaddr + phdrs[i].p_memsz;
+        }
+
+        free(segment_data);
+      }
+    }
+    
+    free(phdrs);
+  }
+
+  /* read section headers for additional information */
+  if (ehdr.e_shnum > 0) {
+    shdrs = calloc(ehdr.e_shnum, sizeof(Elf64_Shdr));
+    if (!shdrs)
+      fatal("out of memory");
+    
+    if (fseek(fobj, ehdr.e_shoff, SEEK_SET) != 0)
+      fatal("cannot seek to section header table in `%s'", fname);
+    
+    if (fread(shdrs, sizeof(Elf64_Shdr), ehdr.e_shnum, fobj) < ehdr.e_shnum)
+      fatal("cannot read section header table from `%s'", fname);
+
+    /* read section string table if present */
+    if (ehdr.e_shstrndx != 0 && ehdr.e_shstrndx < ehdr.e_shnum) {
+      Elf64_Shdr *strtab_shdr = &shdrs[ehdr.e_shstrndx];
+      if (strtab_shdr->sh_size > 0) {
+        section_strtab = calloc(strtab_shdr->sh_size, 1);
+        if (section_strtab) {
+          if (fseek(fobj, strtab_shdr->sh_offset, SEEK_SET) == 0) {
+            fread(section_strtab, strtab_shdr->sh_size, 1, fobj);
+          }
+        }
+      }
+    }
+
+    /* process sections for better text/data classification */
+    for (i = 0; i < ehdr.e_shnum; i++) {
+      char *section_name = "";
+      
+      if (section_strtab && shdrs[i].sh_name < shdrs[ehdr.e_shstrndx].sh_size) {
+        section_name = section_strtab + shdrs[i].sh_name;
+      }
+
+      /* handle specific section types */
+      if (shdrs[i].sh_flags & SHF_ALLOC) {
+        if (shdrs[i].sh_type == SHT_PROGBITS) {
+          if (shdrs[i].sh_flags & SHF_EXECINSTR) {
+            /* text section */
+            if (mem->ld_text_base == 0) {
+              mem->ld_text_base = shdrs[i].sh_addr;
+              mem->ld_text_size = shdrs[i].sh_size + TEXT_TAIL_PADDING;
+            }
+          } else if (shdrs[i].sh_flags & SHF_WRITE) {
+            /* data section */
+            if (mem->ld_data_base == 0) {
+              mem->ld_data_base = shdrs[i].sh_addr;
+            }
+            if (shdrs[i].sh_addr + shdrs[i].sh_size > data_break)
+              data_break = shdrs[i].sh_addr + shdrs[i].sh_size;
+          }
+        } else if (shdrs[i].sh_type == SHT_NOBITS) {
+          /* BSS section */
+          if (zero_bss_segs) {
+            mem_bzero(mem_access, mem, shdrs[i].sh_addr, shdrs[i].sh_size);
+          }
+          if (shdrs[i].sh_addr + shdrs[i].sh_size > data_break)
+            data_break = shdrs[i].sh_addr + shdrs[i].sh_size;
+        }
+      }
+    }
+
+    if (section_strtab)
+      free(section_strtab);
+    free(shdrs);
+  }
+
+  /* set data size */
+  if (mem->ld_data_base > 0 && data_break > mem->ld_data_base) {
+    mem->ld_data_size = data_break - mem->ld_data_base;
+  }
+
+  /* set default values if not found */
+  if (mem->ld_text_base == 0) {
+    mem->ld_text_base = MD_TEXT_BASE;
+    mem->ld_text_size = 0;
+  }
+  if (mem->ld_data_base == 0) {
+    mem->ld_data_base = MD_DATA_BASE;
+    mem->ld_data_size = 0;
+  }
+}
+
+#endif /* !BFD_LOADER */
 
 
 /* load program text and initialized data into simulated virtual memory
@@ -391,30 +590,41 @@ ld_load_prog(char *fname,		/* program to load */
     if (!fobj)
       fatal("cannot open executable `%s'", argv[0]);
 
-    if (fread(&fhdr, sizeof(struct ecoff_filehdr), 1, fobj) < 1)
-      fatal("cannot read header from executable `%s'", argv[0]);
+    /* detect file format - ELF or ECOFF */
+    if (is_elf_file(fobj)) {
+      fprintf(stderr, "sim: detected ELF format\n");
+      load_elf_binary(fobj, argv[0], regs, mem, zero_bss_segs);
+      
+      /* close the file */
+      if (fclose(fobj))
+        fatal("could not close executable `%s'", argv[0]);
+    } else {
+      /* try ECOFF format */
+      fprintf(stderr, "sim: trying ECOFF format\n");
+      
+      if (fread(&fhdr, sizeof(struct ecoff_filehdr), 1, fobj) < 1)
+        fatal("cannot read header from executable `%s'", argv[0]);
 
-    /* record endian of target */
-    if (fhdr.f_magic == MD_SWAPH(ECOFF_ALPHAMAGIC))
-      mem->ld_target_big_endian = FALSE;
-    else if (fhdr.f_magic == MD_SWAPH(ECOFF_EB_MAGIC)
-	     || fhdr.f_magic == MD_SWAPH(ECOFF_EL_MAGIC)
-	     || fhdr.f_magic == MD_SWAPH(ECOFF_EB_OTHER)
-	     || fhdr.f_magic == MD_SWAPH(ECOFF_EL_OTHER))
-      fatal("Alpha simulator cannot run PISA binary `%s'", argv[0]);
-    else
-      fatal("bad magic number in executable `%s' (not an executable)",
-	    argv[0]);
+      /* record endian of target */
+      if (fhdr.f_magic == MD_SWAPH(ECOFF_ALPHAMAGIC))
+        mem->ld_target_big_endian = FALSE;
+      else if (fhdr.f_magic == MD_SWAPH(ECOFF_EB_MAGIC)
+               || fhdr.f_magic == MD_SWAPH(ECOFF_EL_MAGIC)
+               || fhdr.f_magic == MD_SWAPH(ECOFF_EB_OTHER)
+               || fhdr.f_magic == MD_SWAPH(ECOFF_EL_OTHER))
+        fatal("Alpha simulator cannot run PISA binary `%s'", argv[0]);
+      else
+        fatal("bad magic number in executable `%s' (not a recognized executable format)", argv[0]);
 
-    if (fread(&ahdr, sizeof(struct ecoff_aouthdr), 1, fobj) < 1)
-      fatal("cannot read AOUT header from executable `%s'", argv[0]);
+      if (fread(&ahdr, sizeof(struct ecoff_aouthdr), 1, fobj) < 1)
+        fatal("cannot read AOUT header from executable `%s'", argv[0]);
 
-    mem->ld_text_base = MD_SWAPQ(ahdr.text_start);
-    mem->ld_text_size = MD_SWAPQ(ahdr.tsize);
-    mem->ld_prog_entry = MD_SWAPQ(ahdr.entry);
-    mem->ld_data_base = MD_SWAPQ(ahdr.data_start);
-    mem->ld_data_size = MD_SWAPQ(ahdr.dsize) + MD_SWAPQ(ahdr.bsize);
-    regs->regs_R[MD_REG_GP] = MD_SWAPQ(ahdr.gp_value);
+      mem->ld_text_base = MD_SWAPQ(ahdr.text_start);
+      mem->ld_text_size = MD_SWAPQ(ahdr.tsize);
+      mem->ld_prog_entry = MD_SWAPQ(ahdr.entry);
+      mem->ld_data_base = MD_SWAPQ(ahdr.data_start);
+      mem->ld_data_size = MD_SWAPQ(ahdr.dsize) + MD_SWAPQ(ahdr.bsize);
+      regs->regs_R[MD_REG_GP] = MD_SWAPQ(ahdr.gp_value);
 
     /* compute data segment size from data break point */
     data_break = mem->ld_data_base + mem->ld_data_size;
@@ -561,9 +771,10 @@ ld_load_prog(char *fname,		/* program to load */
 	  }
       }
 
-    /* done with the executable, close it */
-    if (fclose(fobj))
-      fatal("could not close executable `%s'", argv[0]);
+      /* done with the executable, close it */
+      if (fclose(fobj))
+        fatal("could not close executable `%s'", argv[0]);
+    } /* end ECOFF loading */
   }
 
 #endif /* BFD_LOADER */
@@ -571,8 +782,7 @@ ld_load_prog(char *fname,		/* program to load */
   /* perform sanity checks on segment ranges */
   if (!mem->ld_text_base || !mem->ld_text_size)
     fatal("executable is missing a `.text' section");
-  if (!mem->ld_data_base || !mem->ld_data_size)
-    fatal("executable is missing a `.data' section");
+  /* Note: .data section is optional for simple programs */
   if (!mem->ld_prog_entry)
     fatal("program entry point not specified");
 

@@ -589,6 +589,15 @@ md_print_insn(md_inst_t inst,		/* instruction to disassemble */
 	      md_addr_t pc,		/* addr of inst, used for PC-rels */
 	      FILE *stream);		/* output stream */
 
+/*
+ * virtual memory segment limits
+ */
+
+/* virtual memory segment limits */
+#define MD_TEXT_BASE		0x20000000ULL
+#define MD_DATA_BASE		0x120000000ULL
+#define MD_STACK_BASE 		(MD_TEXT_BASE - (409600+4096))
+
 #endif /* ALPHA_H */
 
 
@@ -607,6 +616,7 @@ typedef word_t MD_INST_TYPE;
 
 /* virtual memory segment limits */
 #define MD_TEXT_BASE		0x20000000ULL
+#define MD_DATA_BASE		0x120000000ULL
 #define MD_STACK_BASE 		(MD_TEXT_BASE - (409600+4096))
 
 /* well known registers */
