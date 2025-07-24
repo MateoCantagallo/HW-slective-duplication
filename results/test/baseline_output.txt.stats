@@ -1,0 +1,27 @@
+=== Baseline (No Duplication) Statistics ===
+sim_num_insn                2200070 # total number of instructions committed
+sim_num_insn 0              2200002 # total number of instructions committed for this thread
+sim_cycle                    825261 # total simulation time in cycles
+sim_IPC                      2.6659 # instructions per cycle
+sim_CPI                      0.3751 # cycles per instruction
+total_power_cycle_cc1  10515845.9694 # total power per cycle_cc1
+avg_total_power_cycle_cc1      12.7424 # average total power per cycle_cc1
+total_power_cycle_cc2  7956358.9474 # total power per cycle_cc2
+avg_total_power_cycle_cc2       9.6410 # average total power per cycle_cc2
+total_power_cycle_cc3  9093996.5037 # total power per cycle_cc3
+avg_total_power_cycle_cc3      11.0195 # average total power per cycle_cc3
+il1.accesses                2200178 # total number of accesses
+il1.hits                    2200174 # total number of hits
+il1.misses                        4 # total number of misses
+il1.miss_rate                0.0000 # miss rate (i.e., misses/ref)
+dl1.accesses                 275007 # total number of accesses
+dl1.hits                     275007 # total number of hits
+dl1.misses                        0 # total number of misses
+dl1.miss_rate                0.0000 # miss rate (i.e., misses/ref)
+ul2.accesses                      4 # total number of accesses
+ul2.hits                          2 # total number of hits
+ul2.misses                        2 # total number of misses
+ul2.miss_rate                0.5000 # miss rate (i.e., misses/ref)
+Thread_0_bpred_bimod.lookups       137512 # total number of bpred lookups
+Thread_0_bpred_bimod.updates       137502 # total number of updates
+Thread_0_bpred_bimod.misses            2 # total number of misses

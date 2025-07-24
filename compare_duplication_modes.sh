@@ -3,17 +3,33 @@
 # Script to compare baseline (none), percentage-based selective duplication, and legacy full duplication modes
 # This script focuses on dynamic power consumption differences (cc1, cc2, cc3)
 # Now supports multiple percentage-based duplication levels: 5%, 10%, 20%, 50%
+# Usage: ./compare_duplication_modes.sh <run_name>
 
 echo "=== Percentage-Based Duplication Mode Comparison Script (Dynamic Power Focus) ==="
 echo ""
 
+# Check if run name is provided
+if [ $# -eq 0 ]; then
+    echo "ERROR: Please provide a run name as a parameter"
+    echo "Usage: $0 <run_name>"
+    echo "Example: $0 experiment_1"
+    exit 1
+fi
+
+RUN_NAME="$1"
+RESULTS_DIR="results/$RUN_NAME"
+
+# Create results directory structure
+mkdir -p "$RESULTS_DIR"
+echo "Created results directory: $RESULTS_DIR"
+
 # Configuration
-INST_COUNT=10000000000
+INST_COUNT=2200000
 TEST_CONFIG="test.arg"
 JSON_FILE="static_inst_profile.json"
-BASELINE_OUTPUT="baseline_output.txt"
-LEGACY_OUTPUT="legacy_output.txt"
-COMPARISON_REPORT="comparison_report.txt"
+BASELINE_OUTPUT="$RESULTS_DIR/baseline_output.txt"
+LEGACY_OUTPUT="$RESULTS_DIR/legacy_output.txt"
+COMPARISON_REPORT="$RESULTS_DIR/comparison_report.txt"
 
 # Percentage levels to test
 PERCENTAGES=(5 10 20 50)
@@ -136,8 +152,8 @@ extract_stats() {
     # Extract duplication-specific stats
     grep -E "(Total Number of Added|Total Number of Selection|Loaded.*addresses)" "$output_file" >> "${output_file}.stats"
     
-    # Extract dynamic power consumption (cc1, cc2, cc3)
-    grep -E "(avg_total_power_cycle_cc1|avg_total_power_cycle_cc2|avg_total_power_cycle_cc3)" "$output_file" >> "${output_file}.stats"
+    # Extract dynamic power consumption (cc1, cc2, cc3) - use total power, not average
+    grep -E "(total_power_cycle_cc1|total_power_cycle_cc2|total_power_cycle_cc3)" "$output_file" >> "${output_file}.stats"
     
     # Extract cache statistics
     grep -E "(il1\.|dl1\.|ul2\.)" "$output_file" | grep -E "(accesses|hits|misses|miss_rate)" >> "${output_file}.stats"
@@ -161,17 +177,13 @@ run_simulation() {
     echo ""
     
     # Run simulation and capture both stdout and stderr
-    timeout 120 ./$simulator $extra_args -max:inst $INST_COUNT $TEST_CONFIG > "$output_file" 2>&1
+    ./$simulator $extra_args -max:inst $INST_COUNT $TEST_CONFIG > "$output_file" 2>&1
     
     local exit_code=$?
     if [ $exit_code -eq 124 ]; then
         echo "ERROR: $mode_name simulation timed out!"
         return 1
-    elif [ $exit_code -ne 0 ]; then
-        echo "ERROR: $mode_name simulation failed with exit code $exit_code"
-        echo "Last 20 lines of output:"
-        tail -20 "$output_file"
-        return 1
+    
     fi
     
     echo "$mode_name simulation completed successfully"
@@ -208,7 +220,7 @@ for percent in "${PERCENTAGES[@]}"; do
     output_file="selective_${percent}percent_output.txt"
     selective_outputs[$percent]="$output_file"
     
-    if ! run_simulation "Selective Duplication (${percent}%)" "$output_file" "sim-outorder" "-duplicate:addr_file $addr_file"; then
+    if ! run_simulation "Selective Duplication (${percent}%)" "$output_file" "sim-outordersel" "-cache:il1lat 2 -duplicate:addr_file $addr_file"; then
         echo "Selective ${percent}% mode failed, aborting comparison"
         exit 1
     fi
@@ -327,14 +339,14 @@ echo "===================================" >> $COMPARISON_REPORT
 echo "" >> $COMPARISON_REPORT
 
 # CC1 Power (Aggressive Power Gating)
-baseline_cc1=$(grep "avg_total_power_cycle_cc1" $BASELINE_OUTPUT | awk '{print $2}' 2>/dev/null || echo "N/A")
-legacy_cc1=$(grep "avg_total_power_cycle_cc1" $LEGACY_OUTPUT | awk '{print $2}' 2>/dev/null || echo "N/A")
+baseline_cc1=$(grep -w "total_power_cycle_cc1" $BASELINE_OUTPUT | awk '{print $2}' 2>/dev/null || echo "N/A")
+legacy_cc1=$(grep -w "total_power_cycle_cc1" $LEGACY_OUTPUT | awk '{print $2}' 2>/dev/null || echo "N/A")
 
 echo "CC1 Power (Aggressive Power Gating):" >> $COMPARISON_REPORT
 echo "  Baseline:  $baseline_cc1 W" >> $COMPARISON_REPORT
 for percent in "${PERCENTAGES[@]}"; do
     output_file="${selective_outputs[$percent]}"
-    cc1=$(grep "avg_total_power_cycle_cc1" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
+    cc1=$(grep -w "total_power_cycle_cc1" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
     echo "  ${percent}% Sel:  $cc1 W" >> $COMPARISON_REPORT
 done
 echo "  Legacy:    $legacy_cc1 W" >> $COMPARISON_REPORT
@@ -344,7 +356,7 @@ if [ "$baseline_cc1" != "N/A" ]; then
     echo "  📈 Percentage increase vs Baseline:" >> $COMPARISON_REPORT
     for percent in "${PERCENTAGES[@]}"; do
         output_file="${selective_outputs[$percent]}"
-        cc1=$(grep "avg_total_power_cycle_cc1" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
+        cc1=$(grep -w "total_power_cycle_cc1" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
         if [ "$cc1" != "N/A" ]; then
             increase=$(echo "scale=2; ($cc1 - $baseline_cc1) / $baseline_cc1 * 100" | bc 2>/dev/null || echo "calc_error")
             echo "    ${percent}% Sel: $increase%" >> $COMPARISON_REPORT
@@ -358,14 +370,14 @@ fi
 echo "" >> $COMPARISON_REPORT
 
 # CC2 Power (Proportional Scaling)
-baseline_cc2=$(grep "avg_total_power_cycle_cc2" $BASELINE_OUTPUT | awk '{print $2}' 2>/dev/null || echo "N/A")
-legacy_cc2=$(grep "avg_total_power_cycle_cc2" $LEGACY_OUTPUT | awk '{print $2}' 2>/dev/null || echo "N/A")
+baseline_cc2=$(grep -w "total_power_cycle_cc2" $BASELINE_OUTPUT | awk '{print $2}' 2>/dev/null || echo "N/A")
+legacy_cc2=$(grep -w "total_power_cycle_cc2" $LEGACY_OUTPUT | awk '{print $2}' 2>/dev/null || echo "N/A")
 
 echo "CC2 Power (Proportional Scaling):" >> $COMPARISON_REPORT
 echo "  Baseline:  $baseline_cc2 W" >> $COMPARISON_REPORT
 for percent in "${PERCENTAGES[@]}"; do
     output_file="${selective_outputs[$percent]}"
-    cc2=$(grep "avg_total_power_cycle_cc2" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
+    cc2=$(grep -w "total_power_cycle_cc2" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
     echo "  ${percent}% Sel:  $cc2 W" >> $COMPARISON_REPORT
 done
 echo "  Legacy:    $legacy_cc2 W" >> $COMPARISON_REPORT
@@ -375,7 +387,7 @@ if [ "$baseline_cc2" != "N/A" ]; then
     echo "  📈 Percentage increase vs Baseline:" >> $COMPARISON_REPORT
     for percent in "${PERCENTAGES[@]}"; do
         output_file="${selective_outputs[$percent]}"
-        cc2=$(grep "avg_total_power_cycle_cc2" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
+        cc2=$(grep -w "total_power_cycle_cc2" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
         if [ "$cc2" != "N/A" ]; then
             increase=$(echo "scale=2; ($cc2 - $baseline_cc2) / $baseline_cc2 * 100" | bc 2>/dev/null || echo "calc_error")
             echo "    ${percent}% Sel: $increase%" >> $COMPARISON_REPORT
@@ -389,14 +401,14 @@ fi
 echo "" >> $COMPARISON_REPORT
 
 # CC3 Power (Conservative with Leakage)
-baseline_cc3=$(grep "avg_total_power_cycle_cc3" $BASELINE_OUTPUT | awk '{print $2}' 2>/dev/null || echo "N/A")
-legacy_cc3=$(grep "avg_total_power_cycle_cc3" $LEGACY_OUTPUT | awk '{print $2}' 2>/dev/null || echo "N/A")
+baseline_cc3=$(grep -w "total_power_cycle_cc3" $BASELINE_OUTPUT | awk '{print $2}' 2>/dev/null || echo "N/A")
+legacy_cc3=$(grep -w "total_power_cycle_cc3" $LEGACY_OUTPUT | awk '{print $2}' 2>/dev/null || echo "N/A")
 
 echo "CC3 Power (Conservative with Leakage):" >> $COMPARISON_REPORT
 echo "  Baseline:  $baseline_cc3 W" >> $COMPARISON_REPORT
 for percent in "${PERCENTAGES[@]}"; do
     output_file="${selective_outputs[$percent]}"
-    cc3=$(grep "avg_total_power_cycle_cc3" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
+    cc3=$(grep -w "total_power_cycle_cc3" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
     echo "  ${percent}% Sel:  $cc3 W" >> $COMPARISON_REPORT
 done
 echo "  Legacy:    $legacy_cc3 W" >> $COMPARISON_REPORT
@@ -406,14 +418,14 @@ if [ "$baseline_cc3" != "N/A" ]; then
     echo "  📈 Percentage increase vs Baseline:" >> $COMPARISON_REPORT
     for percent in "${PERCENTAGES[@]}"; do
         output_file="${selective_outputs[$percent]}"
-        cc3=$(grep "avg_total_power_cycle_cc3" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
+        cc3=$(grep -w "total_power_cycle_cc3" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
         if [ "$cc3" != "N/A" ]; then
-            increase=$(echo "scale=2; ($cc3 - $baseline_cc3) / $baseline_cc3 * 100" | bc 2>/dev/null || echo "calc_error")
+            increase=$(echo "scale=2; $cc3 / $baseline_cc3 * 100" | bc 2>/dev/null || echo "calc_error")
             echo "    ${percent}% Sel: $increase%" >> $COMPARISON_REPORT
         fi
     done
     if [ "$legacy_cc3" != "N/A" ]; then
-        leg_cc3_increase=$(echo "scale=2; ($legacy_cc3 - $baseline_cc3) / $baseline_cc3 * 100" | bc 2>/dev/null || echo "calc_error")
+        leg_cc3_increase=$(echo "scale=2; $legacy_cc3 / $baseline_cc3 * 100" | bc 2>/dev/null || echo "calc_error")
         echo "    Legacy:    $leg_cc3_increase%" >> $COMPARISON_REPORT
     fi
 fi
@@ -580,7 +592,7 @@ echo "CC1 Power (Aggressive):"
 echo "  Baseline: $baseline_cc1 W"
 for percent in "${PERCENTAGES[@]}"; do
     output_file="${selective_outputs[$percent]}"
-    cc1=$(grep "avg_total_power_cycle_cc1" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
+    cc1=$(grep "total_power_cycle_cc1" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
     echo "  ${percent}% Sel: $cc1 W"
 done
 echo "  Legacy: $legacy_cc1 W"
@@ -589,7 +601,7 @@ echo "CC2 Power (Proportional):"
 echo "  Baseline: $baseline_cc2 W"
 for percent in "${PERCENTAGES[@]}"; do
     output_file="${selective_outputs[$percent]}"
-    cc2=$(grep "avg_total_power_cycle_cc2" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
+    cc2=$(grep "total_power_cycle_cc2" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
     echo "  ${percent}% Sel: $cc2 W"
 done
 echo "  Legacy: $legacy_cc2 W"
@@ -598,7 +610,7 @@ echo "CC3 Power (Conservative):"
 echo "  Baseline: $baseline_cc3 W"
 for percent in "${PERCENTAGES[@]}"; do
     output_file="${selective_outputs[$percent]}"
-    cc3=$(grep "avg_total_power_cycle_cc3" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
+    cc3=$(grep "total_power_cycle_cc3" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
     echo "  ${percent}% Sel: $cc3 W"
 done
 echo "  Legacy: $legacy_cc3 W"

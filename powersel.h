@@ -114,7 +114,7 @@
 
 #define GEN_POWER_FACTOR 1.31
 
-#define TECH_POINT10
+#define TECH_POINT35
 #if defined(TECH_POINT10)
 #define CSCALE		(84.2172)	/* wire capacitance scaling factor */
 			/* linear: 51.7172, predicted: 84.2172 */
@@ -527,7 +527,7 @@ typedef struct {
   double icache_power;
   double dcache_power;
   double dcache2_power;
-
+ double dup_lut_power;
   double clock_power;
 
 } power_result_type;

@@ -346,7 +346,7 @@ cacti cacti/libcacti.$(LEXT): sysprobe$(EEXT)
 
 
 .c.$(OEXT):
-	$(CC) $(CFLAGS) -c $*.c
+	$(CC) $(CFLAGS) -c $*.c > error.log 2>&1
 
 filelist:
 	@echo $(SRCS) $(HDRS) Makefile

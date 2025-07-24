@@ -1,9 +1,9 @@
 ======================================================================
   PERCENTAGE-BASED DUPLICATION MODE COMPARISON REPORT (DYNAMIC POWER FOCUS)
 ======================================================================
-Generated on: jue 03 jul 2025 20:33:23 -03
+Generated on: jue 24 jul 2025 15:47:42 -03
 Test Configuration: test.arg
-Instructions Simulated: 10000000000
+Instructions Simulated: 2200000
 JSON Profile Source: static_inst_profile.json
 Percentage Levels Tested: 5 10 20 50%
 
@@ -14,44 +14,44 @@ Percentage Levels Tested: 5 10 20 50%
 Performance Metrics Comparison:
 ================================
 Instructions Committed:
-  Baseline:  2200196
-  5% Sel:  2200196
-  10% Sel:  2200196
-  20% Sel:  2200196
-  50% Sel:  2200196
-  Legacy:    2200196
+  Baseline:  2200070
+  5% Sel:  2200045
+  10% Sel:  2200042
+  20% Sel:  2200043
+  50% Sel:  2200032
+  Legacy:    2200028
 
 Simulation Cycles:
-  Baseline:  825450
-  5% Sel:  850449
-  10% Sel:  892116
-  20% Sel:  950450
-  50% Sel:  1125453
-  Legacy:    1513004
+  Baseline:  825261
+  5% Sel:  850257
+  10% Sel:  891919
+  20% Sel:  950249
+  50% Sel:  1125348
+  Legacy:    1512875
   📊 Differences vs Baseline:
-    5% Sel: 24999 cycles
-    10% Sel: 66666 cycles
-    20% Sel: 125000 cycles
-    50% Sel: 300003 cycles
-    Legacy:    687554 cycles
+    5% Sel: 24996 cycles
+    10% Sel: 66658 cycles
+    20% Sel: 124988 cycles
+    50% Sel: 300087 cycles
+    Legacy:    687614 cycles
 
 Instructions Per Cycle (IPC):
-  Baseline:  2.6655
-  5% Sel:  2.5871
-  10% Sel:  2.4663
-  20% Sel:  2.3149
-  50% Sel:  1.9549
+  Baseline:  2.6659
+  5% Sel:  2.5875
+  10% Sel:  2.4666
+  20% Sel:  2.3152
+  50% Sel:  1.9550
   Legacy:    1.4542
 
 Duplication Statistics:
 ======================
 Instructions Added in Rename:
   Baseline:  
-  5% Sel:  200004
-  10% Sel:  300004
-  20% Sel:  400012
-  50% Sel:  1000013
-  Legacy:    1925231
+  5% Sel:  199983
+  10% Sel:  299971
+  20% Sel:  399969
+  50% Sel:  999909
+  Legacy:    1925063
   ✓ 5% mode loaded 2 addresses successfully
   ✓ 10% mode loaded 3 addresses successfully
   ✓ 20% mode loaded 5 addresses successfully
@@ -61,46 +61,46 @@ Dynamic Power Consumption Analysis:
 ===================================
 
 CC1 Power (Aggressive Power Gating):
-  Baseline:  45.5872 W
-  5% Sel:  53.6285 W
-  10% Sel:  55.2035 W
-  20% Sel:  54.9318 W
-  50% Sel:  60.4143 W
-  Legacy:    66.0065 W
+  Baseline:  10515845.9694 W
+  5% Sel:  14367835.8525 W
+  10% Sel:  15472540.2316 W
+  20% Sel:  16377153.2880 W
+  50% Sel:  21153860.1310 W
+  Legacy:    31514503.9885 W
   📈 Percentage increase vs Baseline:
-    5% Sel: 17.00%
-    10% Sel: 21.00%
-    20% Sel: 20.00%
-    50% Sel: 32.00%
-    Legacy:    44.00%
+    5% Sel: 36.00%
+    10% Sel: 47.00%
+    20% Sel: 55.00%
+    50% Sel: 101.00%
+    Legacy:    199.00%
 
 CC2 Power (Proportional Scaling):
-  Baseline:  34.5911 W
-  5% Sel:  37.2986 W
-  10% Sel:  37.7230 W
-  20% Sel:  37.6653 W
-  50% Sel:  40.1056 W
-  Legacy:    41.6650 W
+  Baseline:  7956358.9474 W
+  5% Sel:  10441093.7015 W
+  10% Sel:  11068089.1596 W
+  20% Sel:  11760803.0300 W
+  50% Sel:  14633567.8726 W
+  Legacy:    20818092.0785 W
   📈 Percentage increase vs Baseline:
-    5% Sel: 7.00%
-    10% Sel: 9.00%
-    20% Sel: 8.00%
-    50% Sel: 15.00%
-    Legacy:    20.00%
+    5% Sel: 31.00%
+    10% Sel: 39.00%
+    20% Sel: 47.00%
+    50% Sel: 83.00%
+    Legacy:    161.00%
 
 CC3 Power (Conservative with Leakage):
-  Baseline:  39.1646 W
-  5% Sel:  41.1242 W
-  10% Sel:  41.3923 W
-  20% Sel:  41.3629 W
-  50% Sel:  43.2575 W
-  Legacy:    44.2034 W
+  Baseline:  9093996.5037 W
+  5% Sel:  11433373.7100 W
+  10% Sel:  12069219.0775 W
+  20% Sel:  12838246.4819 W
+  50% Sel:  15734552.8115 W
+  Legacy:    21970521.4727 W
   📈 Percentage increase vs Baseline:
-    5% Sel: 5.00%
-    10% Sel: 5.00%
-    20% Sel: 5.00%
-    50% Sel: 10.00%
-    Legacy:    12.00%
+    5% Sel: 125.00%
+    10% Sel: 132.00%
+    20% Sel: 141.00%
+    50% Sel: 173.00%
+    Legacy:    241.00%
 
 Power Model Explanation:
 ========================
@@ -111,11 +111,11 @@ CC3 (Conservative): Same as CC2 but includes leakage power when idle
 Cache Performance:
 ==================
 il1 Cache:
-  Accesses - Baseline: 2200378, Legacy: 2200312
-           5% Sel: 2200354
-           10% Sel: 2200354
-           20% Sel: 2200347
-           50% Sel: 2200363
+  Accesses - Baseline: 2200178, Legacy: 2200115
+           5% Sel: 2200151
+           10% Sel: 2200150
+           20% Sel: 2200151
+           50% Sel: 2200164
   Miss Rate - Baseline: 0.0000, Legacy: 0.0000
             5% Sel: 0.0000
             10% Sel: 0.0000
@@ -123,11 +123,11 @@ il1 Cache:
             50% Sel: 0.0000
 
 dl1 Cache:
-  Accesses - Baseline: 275037, Legacy: 550055
-           5% Sel: 275037
-           10% Sel: 275037
-           20% Sel: 300037
-           50% Sel: 475037
+  Accesses - Baseline: 275007, Legacy: 550008
+           5% Sel: 275007
+           10% Sel: 275007
+           20% Sel: 300004
+           50% Sel: 474990
   Miss Rate - Baseline: 0.0000, Legacy: 0.0000
             5% Sel: 0.0000
             10% Sel: 0.0000
@@ -135,16 +135,16 @@ dl1 Cache:
             50% Sel: 0.0000
 
 ul2 Cache:
-  Accesses - Baseline: 7, Legacy: 7
-           5% Sel: 7
-           10% Sel: 7
-           20% Sel: 7
-           50% Sel: 7
-  Miss Rate - Baseline: 0.4286, Legacy: 0.4286
-            5% Sel: 0.4286
-            10% Sel: 0.4286
-            20% Sel: 0.4286
-            50% Sel: 0.4286
+  Accesses - Baseline: 4, Legacy: 6
+           5% Sel: 4
+           10% Sel: 4
+           20% Sel: 4
+           50% Sel: 6
+  Miss Rate - Baseline: 0.5000, Legacy: 0.5000
+            5% Sel: 0.5000
+            10% Sel: 0.5000
+            20% Sel: 0.5000
+            50% Sel: 0.5000
 
 Functional Unit Usage:
 ======================
@@ -152,39 +152,39 @@ Baseline Mode FU Usage:
   No FU usage statistics found in baseline output
 
 Selective 5% Mode FU Usage:
-integer-ALU (busy for 850087 cycles
-) integer-ALU (busy for 712570 cycles
-) integer-ALU (busy for 487552 cycles
-) integer-ALU (busy for 150030 cycles
-FP-adder (busy for 400008 cycles
+integer-ALU (busy for 850013 cycles
+) integer-ALU (busy for 712508 cycles
+) integer-ALU (busy for 487507 cycles
+) integer-ALU (busy for 150021 cycles
+FP-adder (busy for 399965 cycles
 
 Selective 10% Mode FU Usage:
-integer-ALU (busy for 858421 cycles
-) integer-ALU (busy for 720905 cycles
-) integer-ALU (busy for 479217 cycles
-) integer-ALU (busy for 141697 cycles
-FP-adder (busy for 466674 cycles
+integer-ALU (busy for 858345 cycles
+) integer-ALU (busy for 720841 cycles
+) integer-ALU (busy for 479173 cycles
+) integer-ALU (busy for 141689 cycles
+FP-adder (busy for 466624 cycles
 
 Selective 20% Mode FU Usage:
-integer-ALU (busy for 875088 cycles
-) integer-ALU (busy for 762568 cycles
-) integer-ALU (busy for 437550 cycles
-) integer-ALU (busy for 125030 cycles
-FP-adder (busy for 550008 cycles
+integer-ALU (busy for 875012 cycles
+) integer-ALU (busy for 762502 cycles
+) integer-ALU (busy for 437513 cycles
+) integer-ALU (busy for 125024 cycles
+FP-adder (busy for 549952 cycles
 
 Selective 50% Mode FU Usage:
-integer-ALU (busy for 1025090 cycles
-) integer-ALU (busy for 787570 cycles
-) integer-ALU (busy for 312546 cycles
-) integer-ALU (busy for 75031 cycles
-FP-adder (busy for 900016 cycles
+integer-ALU (busy for 1025001 cycles
+) integer-ALU (busy for 787503 cycles
+) integer-ALU (busy for 312523 cycles
+) integer-ALU (busy for 75030 cycles
+FP-adder (busy for 899920 cycles
 
 Legacy Mode FU Usage:
-integer-ALU (busy for 1375126 cycles
-) integer-ALU (busy for 825067 cycles
+integer-ALU (busy for 1375014 cycles
+) integer-ALU (busy for 825005 cycles
 ) integer-ALU (busy for 0 cycles
 ) integer-ALU (busy for 0 cycles
-FP-adder (busy for 1512643 cycles
+FP-adder (busy for 1512519 cycles
 
 Error Analysis:
 ===============
@@ -225,13 +225,13 @@ Thread_0_bpred_bimod.ras_rate.PP <error: divide by zero> # RAS prediction rate (
                          FILE INFORMATION
 ======================================================================
 Full output files:
-  Baseline mode:  baseline_output.txt
+  Baseline mode:  results/test/baseline_output.txt
   5% Sel mode:  selective_5percent_output.txt
   10% Sel mode:  selective_10percent_output.txt
   20% Sel mode:  selective_20percent_output.txt
   50% Sel mode:  selective_50percent_output.txt
-  Legacy mode:    legacy_output.txt
-  This report:    comparison_report.txt
+  Legacy mode:    results/test/legacy_output.txt
+  This report:    results/test/comparison_report.txt
 
 Address files:
   5% addresses: addresses_5percent.txt
@@ -241,8 +241,8 @@ Address files:
 
 File sizes:
   Baseline output:  637 lines, 36K
-  5% Sel output:  728 lines, 36K
-  10% Sel output:  728 lines, 36K
-  20% Sel output:  728 lines, 36K
-  50% Sel output:  728 lines, 36K
-  Legacy output:    727 lines, 36K
+  5% Sel output:  729 lines, 36K
+  10% Sel output:  729 lines, 36K
+  20% Sel output:  729 lines, 36K
+  50% Sel output:  729 lines, 36K
+  Legacy output:    728 lines, 36K
