@@ -283,7 +283,7 @@ CFLAGS = $(MFLAGS) $(FFLAGS) $(OFLAGS) $(BINUTILS_INC) $(BINUTILS_LIB)
 #
 # all the sources
 #
-SRCS =	main.c sim-outorder.c \
+SRCS =	main.c sim-outorder.c sim-outordersel.c sim-outorder-none.c \
 	memory.c regs.c cache.c bpred.c ptrace.c eventq.c \
 	resource.c endian.c dlite.c symbol.c eval.c options.c range.c \
 	eio.c stats.c endian.c misc.c smt.c power.c\
@@ -306,7 +306,7 @@ OBJS =	main.$(OEXT) syscall.$(OEXT) memory.$(OEXT) regs.$(OEXT) \
 #
 # all targets, NOTE: library ordering is important...
 #
-all: sim-outorder
+all: sim-outorder sim-outordersel sim-outorder-none
 	@echo "my work is done here..."
 
 config-alpha:
@@ -336,6 +336,12 @@ power$(EEXT):           power.c
 sim-outorder$(EEXT):	sysprobe$(EEXT) sim-outorder.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT)
 	$(CC) -o sim-outorder$(EEXT) $(CFLAGS) sim-outorder.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT) $(MLIBS)
 
+sim-outordersel$(EEXT):	sysprobe$(EEXT) sim-outordersel.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT)
+	$(CC) -o sim-outordersel$(EEXT) $(CFLAGS) sim-outordersel.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT) $(MLIBS)
+
+sim-outorder-none$(EEXT):	sysprobe$(EEXT) sim-outorder-none.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT)
+	$(CC) -o sim-outorder-none$(EEXT) $(CFLAGS) sim-outorder-none.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT) $(MLIBS)
+
 exo libexo/libexo.$(LEXT): sysprobe$(EEXT)
 	cd libexo $(CS) \
 	$(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "AR=$(AR)" "AROPT=$(AROPT)" "RANLIB=$(RANLIB)" "CFLAGS=$(MFLAGS) $(FFLAGS) $(OFLAGS)" "OEXT=$(OEXT)" "LEXT=$(LEXT)" "EEXT=$(EEXT)" "X=$(X)" "RM=$(RM)" libexo.$(LEXT)
@@ -358,7 +364,7 @@ diffs:
 	-cd target-alpha; rcsdiff RCS/*
 
 clean:
-	-$(RM) *.o *.obj *.exe core *~ MAKE.log Makefile.bak sysprobe$(EEXT) sim-outorder
+	-$(RM) *.o *.obj *.exe core *~ MAKE.log Makefile.bak sysprobe$(EEXT) sim-outorder sim-outordersel sim-outorder-none
 	cd libexo $(CS) $(MAKE) "RM=$(RM)" "CS=$(CS)" clean $(CS) cd ..
 	cd cacti $(CS) $(MAKE) "RM=$(RM)" "CS=$(CS)" clean $(CS) cd ..
 
