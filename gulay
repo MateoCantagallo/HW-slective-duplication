@@ -32,10 +32,10 @@
 -nice                             0 
 
 # maximum number of inst's to execute
--max:inst                   100000
+-max:inst                   20000000
 
 # number of insts skipped before timing starts
--fastfwd                    100000000
+-fastfwd                    10000000
 
 # generate pipetrace, i.e., <fname|stdout|stderr> <range>
 # -ptrace                    <null> 

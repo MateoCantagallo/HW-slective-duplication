@@ -6049,6 +6049,7 @@ register_rename(void)
 			//GUL_Start
 			int opIndex = opCouldConvert(rs->op);
 			if(opIndex > -1  && rs->should_duplicate == 1 ){
+				rs->should_duplicate = 0;
 				if(n_renamed < decode_width && (include_spec || !contexts[disp_context_id].spec_mode)
 						&& (contexts[disp_context_id].ROB_num < ROB_size)){
 					/* fill in ROB entry */
@@ -6606,7 +6607,6 @@ fetch(int* current_fetch_context_ptr)
 		assert(current_fetch_context < num_contexts);
 
 		/* Wattch: add power for i-fetch stage */
-		icache_access++;
 		icache_access++;
 		/* is this a bogus text address? (can happen on mis-spec path) */
 		if (mem->ld_text_base <= contexts[current_fetch_context].fetch_regs_PC

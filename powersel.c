@@ -157,7 +157,6 @@ static double dcache2_power=0;
 static double alu_power=0;
 static double falu_power=0;
 static double resultbus_power=0;
-static double dup_cache_power=0; 
 static double clock_power=0;
 
 static double rename_power_cc1=0;
@@ -170,7 +169,6 @@ static double dcache_power_cc1=0;
 static double dcache2_power_cc1=0;
 static double alu_power_cc1=0;
 static double resultbus_power_cc1=0;
-static double dup_cache_power_cc1=0;    /* duplication cache power cc1 */
 static double clock_power_cc1=0;
 
 static double rename_power_cc2=0;
@@ -183,7 +181,6 @@ static double dcache_power_cc2=0;
 static double dcache2_power_cc2=0;
 static double alu_power_cc2=0;
 static double resultbus_power_cc2=0;
-static double dup_cache_power_cc2=0;    /* duplication cache power cc2 */
 static double clock_power_cc2=0;
 
 static double rename_power_cc3=0;
@@ -196,7 +193,6 @@ static double dcache_power_cc3=0;
 static double dcache2_power_cc3=0;
 static double alu_power_cc3=0;
 static double resultbus_power_cc3=0;
-static double dup_cache_power_cc3=0; 
 static double clock_power_cc3=0;
 
 static double total_cycle_power;
@@ -235,7 +231,6 @@ extern counter_t lsq_preg_access;
 extern counter_t lsq_wakeup_access;
 extern counter_t lsq_store_data_access;
 extern counter_t lsq_load_data_access;
-extern counter_t dup_cache_access;    /* duplication cache access counter */
 
 extern counter_t window_total_pop_count_cycle;
 extern counter_t window_num_pop_count_cycle;
@@ -256,7 +251,6 @@ static counter_t total_dcache_access=0;
 static counter_t total_dcache2_access=0;
 static counter_t total_alu_access=0;
 static counter_t total_resultbus_access=0;
-static counter_t total_dup_cache_access=0;    /* total duplication cache accesses */
 
 static counter_t max_rename_access;
 static counter_t max_bpred_access;
@@ -268,7 +262,6 @@ static counter_t max_dcache_access;
 static counter_t max_dcache2_access;
 static counter_t max_alu_access;
 static counter_t max_resultbus_access;
-static counter_t max_dup_cache_access;   
 
 void clear_access_stats()
 {
@@ -284,7 +277,6 @@ void clear_access_stats()
   ialu_access=0;
   falu_access=0;
   resultbus_access=0;
-  dup_cache_access=0;     /* clear duplication cache access counter */
 
   window_preg_access=0;
   window_selection_access=0;
@@ -357,8 +349,6 @@ void update_power_stats()
   alu_power+=power.ialu_power + power.falu_power;
   falu_power+=power.falu_power;
   resultbus_power+=power.resultbus;
-    /* Cache power is equivalent to I-cache power per access */
-  dup_cache_power+=(power.icache_power * dup_cache_access);
   clock_power+=power.clock_power;
 
   total_rename_access+=rename_access;
@@ -371,7 +361,6 @@ void update_power_stats()
   total_dcache2_access+=dcache2_access;
   total_alu_access+=alu_access;
   total_resultbus_access+=resultbus_access;
-  total_dup_cache_access+=dup_cache_access;
 
   max_rename_access=MAX(rename_access,max_rename_access);
   max_bpred_access=MAX(bpred_access,max_bpred_access);
@@ -383,7 +372,6 @@ void update_power_stats()
   max_dcache2_access=MAX(dcache2_access,max_dcache2_access);
   max_alu_access=MAX(alu_access,max_alu_access);
   max_resultbus_access=MAX(resultbus_access,max_resultbus_access);
-  max_dup_cache_access=MAX(dup_cache_access,max_dup_cache_access);
       
   if(rename_access) {
     rename_power_cc1+=power.rename_power;
@@ -513,12 +501,12 @@ void update_power_stats()
 
   if(icache_access) {
     /* don't scale icache because we assume 1 line is fetched, unless fetch stalls */
-    icache_power_cc1+=power.icache_power+power.itlb;
-    icache_power_cc2+=power.icache_power+power.itlb;
-    icache_power_cc3+=power.icache_power+power.itlb;
+    icache_power_cc1+=power.icache_power*2+power.itlb;
+    icache_power_cc2+=power.icache_power*2+power.itlb;
+    icache_power_cc3+=power.icache_power*2+power.itlb;
   }
   else
-    icache_power_cc3+=turnoff_factor*(power.icache_power+power.itlb);
+    icache_power_cc3+=turnoff_factor*(power.icache_power+power.itlb)*2;
 
   if(dcache_access) {
     if(dcache_access <= res_memport)
@@ -563,17 +551,6 @@ void update_power_stats()
   else
     alu_power_cc3+=turnoff_factor*(power.ialu_power + power.falu_power);
 
-
-   /* Duplication cache power calculation - equivalent to I-cache power per access */
-  if(dup_cache_access) {
-    /* Scale cache power based on number of accesses (each access = I-cache power) */
-    dup_cache_power_cc1+=((double)dup_cache_access) * power.icache_power;
-    dup_cache_power_cc2+=((double)dup_cache_access) * power.icache_power;
-    dup_cache_power_cc3+=((double)dup_cache_access) * power.icache_power;
-  }
-  else
-    dup_cache_power_cc3+=turnoff_factor * power.icache_power;
-
 #ifdef STATIC_AF
   if(resultbus_access) {
     assert(issue_width != 0);
@@ -604,24 +581,24 @@ void update_power_stats()
     resultbus_power_cc3+=turnoff_factor*power.resultbus;
 #endif
 
-total_cycle_power = rename_power + bpred_power + window_power + 
+  total_cycle_power = rename_power + bpred_power + window_power + 
     lsq_power + regfile_power + icache_power + dcache_power +
-    alu_power + resultbus_power + dup_cache_power;
+    alu_power + resultbus_power;
 
   total_cycle_power_cc1 = rename_power_cc1 + bpred_power_cc1 + 
     window_power_cc1 + lsq_power_cc1 + regfile_power_cc1 + 
     icache_power_cc1 + dcache_power_cc1 + alu_power_cc1 + 
-    resultbus_power_cc1 + dup_cache_power_cc1;
+    resultbus_power_cc1;
 
   total_cycle_power_cc2 = rename_power_cc2 + bpred_power_cc2 + 
     window_power_cc2 + lsq_power_cc2 + regfile_power_cc2 + 
     icache_power_cc2 + dcache_power_cc2 + alu_power_cc2 + 
-    resultbus_power_cc2 + dup_cache_power_cc2;
+    resultbus_power_cc2;
 
   total_cycle_power_cc3 = rename_power_cc3 + bpred_power_cc3 + 
     window_power_cc3 + lsq_power_cc3 + regfile_power_cc3 + 
     icache_power_cc3 + dcache_power_cc3 + alu_power_cc3 + 
-    resultbus_power_cc3 + dup_cache_power_cc3;
+    resultbus_power_cc3;
 
   clock_power_cc1+=power.clock_power*(total_cycle_power_cc1/total_cycle_power);
   clock_power_cc2+=power.clock_power*(total_cycle_power_cc2/total_cycle_power);
@@ -714,10 +691,6 @@ power_reg_stats(struct stat_sdb_t *sdb)	/* stats database */
   stat_reg_formula(sdb, "total_power", "total power per cycle","(rename_power + bpred_power + window_power + lsq_power + regfile_power + icache_power  + resultbus_power + clock_power + alu_power + dcache_power + dcache2_power)", NULL);
 
   stat_reg_formula(sdb, "avg_total_power_cycle", "average total power per cycle","(rename_power + bpred_power + window_power + lsq_power + regfile_power + icache_power + resultbus_power + clock_power + alu_power + dcache_power + dcache2_power)/sim_cycle", NULL);
-
-  stat_reg_formula(sdb, "avg_dup_cache_power", "avg power usage of duplication cache", "dup_cache_power/sim_cycle",  NULL);
-
-  stat_reg_double(sdb, "dup_cache_power", "total power usage of duplication cache", &dup_cache_power, 0, NULL);
 
   stat_reg_formula(sdb, "avg_total_power_cycle_nofp_nod2", "average total power per cycle","(rename_power + bpred_power + window_power + lsq_power + regfile_power + icache_power + resultbus_power + clock_power + alu_power + dcache_power - falu_power )/sim_cycle", NULL);
 
@@ -2347,8 +2320,6 @@ void calculate_power(power)
 
   power->regfile_power_nobit = power->regfile_decoder + 
     power->regfile_wordline + power->regfile_senseamp;
-
-    power->dup_lut_power = power->icache_power;
 
   dump_power_stats(power);
 

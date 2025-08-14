@@ -298,10 +298,20 @@ HDRS =	syscall.h memory.h regs.h sim.h loader.h cache.h bpred.h ptrace.h \
 #
 # common objects
 #
-OBJS =	main.$(OEXT) syscall.$(OEXT) memory.$(OEXT) regs.$(OEXT) \
+# Common objects for all simulators
+COMMON_OBJS = main.$(OEXT) syscall.$(OEXT) memory.$(OEXT) regs.$(OEXT) \
 	loader.$(OEXT) endian.$(OEXT) dlite.$(OEXT) symbol.$(OEXT) \
 	eval.$(OEXT) options.$(OEXT) stats.$(OEXT) eio.$(OEXT)\
-	range.$(OEXT) misc.$(OEXT) machine.$(OEXT) power.$(OEXT)
+	range.$(OEXT) misc.$(OEXT) machine.$(OEXT)
+
+# Objects for sim-outorder (uses power.c)
+OBJS_OUTORDER = $(COMMON_OBJS) power.$(OEXT)
+
+# Objects for sim-outordersel (uses powersel.c) 
+OBJS_OUTORDERSEL = $(COMMON_OBJS) powersel.$(OEXT)
+
+# Objects for sim-outorder-none (uses power.c)
+OBJS_NONE = $(COMMON_OBJS) power.$(OEXT)
 
 #
 # all targets, NOTE: library ordering is important...
@@ -333,14 +343,14 @@ wattch-interact$(EEXT): sysprobe$(EEXT) eval.o misc.o stats.o power.o wattch-int
 power$(EEXT):           power.c
 	$(CC) $(SAFECFLAGS) -c power.c
 
-sim-outorder$(EEXT):	sysprobe$(EEXT) sim-outorder.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT)
-	$(CC) -o sim-outorder$(EEXT) $(CFLAGS) sim-outorder.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT) $(MLIBS)
+sim-outorder$(EEXT):	sysprobe$(EEXT) sim-outorder.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS_OUTORDER) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT)
+	$(CC) -o sim-outorder$(EEXT) $(CFLAGS) sim-outorder.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS_OUTORDER) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT) $(MLIBS)
 
-sim-outordersel$(EEXT):	sysprobe$(EEXT) sim-outordersel.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT)
-	$(CC) -o sim-outordersel$(EEXT) $(CFLAGS) sim-outordersel.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT) $(MLIBS)
+sim-outordersel$(EEXT):	sysprobe$(EEXT) sim-outordersel.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS_OUTORDERSEL) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT)
+	$(CC) -o sim-outordersel$(EEXT) $(CFLAGS) sim-outordersel.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS_OUTORDERSEL) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT) $(MLIBS)
 
-sim-outorder-none$(EEXT):	sysprobe$(EEXT) sim-outorder-none.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT)
-	$(CC) -o sim-outorder-none$(EEXT) $(CFLAGS) sim-outorder-none.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT) $(MLIBS)
+sim-outorder-none$(EEXT):	sysprobe$(EEXT) sim-outorder-none.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS_NONE) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT)
+	$(CC) -o sim-outorder-none$(EEXT) $(CFLAGS) sim-outorder-none.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS_NONE) libexo/libexo.$(LEXT) cacti/libcacti.$(LEXT) $(MLIBS)
 
 exo libexo/libexo.$(LEXT): sysprobe$(EEXT)
 	cd libexo $(CS) \

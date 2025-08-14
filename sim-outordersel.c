@@ -6049,6 +6049,7 @@ register_rename(void)
 			//GUL_Start
 			int opIndex = opCouldConvert(rs->op);
 			if(opIndex > -1  && rs->should_duplicate == 1 ){
+				rs->should_duplicate = 0; 
 				if(n_renamed < decode_width && (include_spec || !contexts[disp_context_id].spec_mode)
 						&& (contexts[disp_context_id].ROB_num < ROB_size)){
 					/* fill in ROB entry */

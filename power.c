@@ -501,12 +501,12 @@ void update_power_stats()
 
   if(icache_access) {
     /* don't scale icache because we assume 1 line is fetched, unless fetch stalls */
-    icache_power_cc1+=power.icache_power*2+power.itlb;
-    icache_power_cc2+=power.icache_power*2+power.itlb;
-    icache_power_cc3+=power.icache_power*2+power.itlb;
+    icache_power_cc1+=power.icache_power+power.itlb;
+    icache_power_cc2+=power.icache_power+power.itlb;
+    icache_power_cc3+=power.icache_power+power.itlb;
   }
   else
-    icache_power_cc3+=turnoff_factor*(power.icache_power*2+power.itlb);
+    icache_power_cc3+=turnoff_factor*(power.icache_power+power.itlb);
 
   if(dcache_access) {
     if(dcache_access <= res_memport)

@@ -24,7 +24,7 @@ mkdir -p "$RESULTS_DIR"
 echo "Created results directory: $RESULTS_DIR"
 
 # Configuration
-INST_COUNT=2200000
+INST_COUNT=200000000
 TEST_CONFIG="test.arg"
 JSON_FILE="static_inst_profile.json"
 BASELINE_OUTPUT="$RESULTS_DIR/baseline_output.txt"
@@ -173,11 +173,11 @@ run_simulation() {
     local extra_args=$4
     
     echo "Running $mode_name mode..."
-    echo "Command: ./$simulator $extra_args -max:inst $INST_COUNT $TEST_CONFIG"
+    echo "Command: ./$simulator $extra_args $TEST_CONFIG"
     echo ""
     
     # Run simulation and capture both stdout and stderr
-    ./$simulator $extra_args -max:inst $INST_COUNT $TEST_CONFIG > "$output_file" 2>&1
+    ./$simulator $extra_args $TEST_CONFIG > "$output_file" 2>&1
     
     local exit_code=$?
     if [ $exit_code -eq 124 ]; then
@@ -200,15 +200,15 @@ run_simulation() {
 rm -f $BASELINE_OUTPUT $LEGACY_OUTPUT $COMPARISON_REPORT
 rm -f ${BASELINE_OUTPUT}.stats ${LEGACY_OUTPUT}.stats
 for percent in "${PERCENTAGES[@]}"; do
-    rm -f "selective_${percent}percent_output.txt"
-    rm -f "selective_${percent}percent_output.txt.stats"
+    rm -f "$RESULTS_DIR/selective_${percent}percent_output.txt"
+    rm -f "$RESULTS_DIR/selective_${percent}percent_output.txt.stats"
 done
 
 echo "Starting percentage-based comparison simulations..."
 echo ""
 
 # Run baseline mode (no duplication at all)
-if ! run_simulation "Baseline (No Duplication)" "$BASELINE_OUTPUT" "sim-outorder-none" ""; then
+if ! run_simulation "Baseline (No Duplication)" "$BASELINE_OUTPUT" "sim-outorder-none" "-config gulay"; then
     echo "Baseline mode failed, aborting comparison"
     exit 1
 fi
@@ -217,17 +217,24 @@ fi
 declare -A selective_outputs
 for percent in "${PERCENTAGES[@]}"; do
     addr_file="addresses_${percent}percent.txt"
-    output_file="selective_${percent}percent_output.txt"
+    output_file="$RESULTS_DIR/selective_${percent}percent_output.txt"
     selective_outputs[$percent]="$output_file"
     
-    if ! run_simulation "Selective Duplication (${percent}%)" "$output_file" "sim-outordersel" "-cache:il1lat 2 -duplicate:addr_file $addr_file"; then
+    if ! run_simulation "Selective Duplication (${percent}%)" "$output_file" "sim-outordersel" "-config gulay -cache:il1lat 2 -duplicate:addr_file $addr_file"; then
         echo "Selective ${percent}% mode failed, aborting comparison"
         exit 1
     fi
 done
 
-# Run legacy mode (full duplication)
-if ! run_simulation "Legacy (Full Duplication)" "$LEGACY_OUTPUT" "sim-outorder" ""; then
+# Run legacy mode (full duplication using 100% address file)
+LEGACY_ADDR_FILE="addresses_${RUN_NAME}_100percent.txt"
+if [ ! -f "$LEGACY_ADDR_FILE" ]; then
+    echo "ERROR: Legacy address file $LEGACY_ADDR_FILE not found!"
+    echo "Make sure to run the address file generation first."
+    exit 1
+fi
+
+if ! run_simulation "Legacy (Full Duplication)" "$LEGACY_OUTPUT" "sim-outordersel" "-config gulay -duplicate:addr_file $LEGACY_ADDR_FILE"; then
     echo "Legacy mode failed, aborting comparison"
     exit 1
 fi
@@ -420,16 +427,48 @@ if [ "$baseline_cc3" != "N/A" ]; then
         output_file="${selective_outputs[$percent]}"
         cc3=$(grep -w "total_power_cycle_cc3" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
         if [ "$cc3" != "N/A" ]; then
-            increase=$(echo "scale=2; $cc3 / $baseline_cc3 * 100" | bc 2>/dev/null || echo "calc_error")
+            increase=$(echo "scale=2; ($cc3 - $baseline_cc3) / $baseline_cc3 * 100" | bc 2>/dev/null || echo "calc_error")
             echo "    ${percent}% Sel: $increase%" >> $COMPARISON_REPORT
         fi
     done
     if [ "$legacy_cc3" != "N/A" ]; then
-        leg_cc3_increase=$(echo "scale=2; $legacy_cc3 / $baseline_cc3 * 100" | bc 2>/dev/null || echo "calc_error")
+        leg_cc3_increase=$(echo "scale=2; ($legacy_cc3 - $baseline_cc3) / $baseline_cc3 * 100" | bc 2>/dev/null || echo "calc_error")
         echo "    Legacy:    $leg_cc3_increase%" >> $COMPARISON_REPORT
     fi
 fi
 echo "" >> $COMPARISON_REPORT
+
+# CC3 Power (Conservative with Leakage)
+baseline_cc3=$(grep -w "avg_total_power_cycle_cc3" $BASELINE_OUTPUT | awk '{print $2}' 2>/dev/null || echo "N/A")
+legacy_cc3=$(grep -w "avg_total_power_cycle_cc3" $LEGACY_OUTPUT | awk '{print $2}' 2>/dev/null || echo "N/A")
+
+echo "AVG CC3 Power (Conservative with Leakage):" >> $COMPARISON_REPORT
+echo "  Baseline:  $baseline_cc3 W" >> $COMPARISON_REPORT
+for percent in "${PERCENTAGES[@]}"; do
+    output_file="${selective_outputs[$percent]}"
+    cc3=$(grep -w "avg_total_power_cycle_cc3" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
+    echo "  ${percent}% Sel:  $cc3 W" >> $COMPARISON_REPORT
+done
+echo "  Legacy:    $legacy_cc3 W" >> $COMPARISON_REPORT
+
+# Calculate percentage increases for CC3
+if [ "$baseline_cc3" != "N/A" ]; then
+    echo "  📈 Percentage increase vs Baseline:" >> $COMPARISON_REPORT
+    for percent in "${PERCENTAGES[@]}"; do
+        output_file="${selective_outputs[$percent]}"
+        cc3=$(grep -w "avg_total_power_cycle_cc3" $output_file | awk '{print $2}' 2>/dev/null || echo "N/A")
+        if [ "$cc3" != "N/A" ]; then
+            increase=$(echo "scale=2; ($cc3 - $baseline_cc3) / $baseline_cc3 * 100" | bc 2>/dev/null || echo "calc_error")
+            echo "    ${percent}% Sel: $increase%" >> $COMPARISON_REPORT
+        fi
+    done
+    if [ "$legacy_cc3" != "N/A" ]; then
+        leg_cc3_increase=$(echo "scale=2; ($legacy_cc3 - $baseline_cc3) / $baseline_cc3 * 100" | bc 2>/dev/null || echo "calc_error")
+        echo "    Legacy:    $leg_cc3_increase%" >> $COMPARISON_REPORT
+    fi
+fi
+echo "" >> $COMPARISON_REPORT
+
 
 # Power Model Explanation
 echo "Power Model Explanation:" >> $COMPARISON_REPORT
@@ -637,10 +676,6 @@ echo "For detailed comparison, view: $COMPARISON_REPORT"
 echo ""
 
 # Ask if user wants to see the report
-read -p "Would you like to view the detailed comparison report now? (y/n): " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    less "$COMPARISON_REPORT"
-fi
+
 
 echo "Comparison script completed successfully!"
